@@ -4,13 +4,10 @@ const flash = require("express-flash");
 const { PrismaClient } = require("@prisma/client");
 const { register, login } = require("./model/user");
 const prisma = new PrismaClient();
+const passport = require("./lib/passport");
 require("dotenv").config();
 
 const app = express();
-
-// const PORT = process.env.PORT;
-// const SECRET_KEY = process.env.SECRET_KEY;
-// const DATABASE_URL = process.env.DATABASE_URL;
 
 const { PORT } = process.env;
 
@@ -28,10 +25,8 @@ app.use(
 );
 
 // Ketiga, setting passport
-// (sebelum router dan view engine)
-// const passport = require("./lib/passport"); // => NANTI HARUS KITA BUAT!!!
-// app.use(passport.initialize());
-// app.use(passport.session());
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Keempat, setting flash
 app.use(flash());
@@ -39,10 +34,19 @@ app.use(flash());
 // Kelima, setting view engine
 app.set("view engine", "ejs");
 
-app.get("/", async (req, res) => {
+function restrict(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect("/login");
+}
+
+// Routing
+app.get("/", restrict, async (req, res) => {
   const users = await prisma.user.findMany();
   res.render("dashboard", { users });
 });
+
 app.get("/register", (req, res) => res.render("register"));
 app.post("/register", async (req, res) => {
   await register({ email: req.body.email, password: req.body.password });
@@ -50,14 +54,17 @@ app.post("/register", async (req, res) => {
 });
 
 app.get("/login", (req, res) => res.render("login"));
-app.post("/login", async (req, res) => {
-  try {
-    await login({ email: req.body.email, password: req.body.password });
-    res.redirect("/");
-  } catch (error) {
-    console.log({ error });
-    res.redirect("/login");
-  }
+app.post(
+  "/login",
+  passport.authenticate("local", {
+    successRedirect: "/",
+    failureRedirect: "/login",
+    failureFlash: true,
+  })
+);
+
+app.get("/whoami", restrict, (req, res) => {
+  res.render("whoami", { username: req.user.email });
 });
 
 app.listen(PORT, () => {

@@ -32,7 +32,17 @@ async function login({ email, password }) {
   }
 }
 
-module.exports = { register, login };
+async function findByPk(pk) {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: pk } });
+    console.log("findByPk.", { pk, user });
+    return user;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
+module.exports = { register, login, findByPk };
 
 // class User {
 //   static #encrypt = (password) => bcrypt.hashSync(password, 10);
