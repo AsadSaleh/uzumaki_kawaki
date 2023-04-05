@@ -12,6 +12,13 @@ const {
 const morgan = require("morgan");
 const { restrictPageAccess } = require("./middleware/restrictPageAccess");
 const { restrictLoginPage } = require("./middleware/restrictLoginPage");
+const {
+  createRoomController,
+  joinRoomController,
+  getAllRoomsController,
+  getRoomByIdController,
+  playGameController,
+} = require("./controller/roomController");
 
 require("dotenv").config();
 
@@ -45,6 +52,12 @@ app.post("/api/login", loginController);
 app.post("/register", registerController);
 app.post("/logout", logoutController);
 app.get("/whoami", restrictPageAccess, whoamiController);
+
+app.get("/api/room", getAllRoomsController);
+app.get("/api/room/:roomId", getRoomByIdController);
+app.post("/api/room/create", createRoomController);
+app.post("/api/room/:roomId/join", joinRoomController);
+app.post("/api/room/:roomId/play", playGameController);
 
 app.listen(PORT, () => {
   console.log(`Server sudah menyala ✅ di http://localhost:${PORT}`);
