@@ -1,7 +1,7 @@
 const { login, register, findByPk } = require("../model/user");
 const jwt = require("jsonwebtoken");
 
-async function loginController(req, res) {
+async function loginPageController(req, res) {
   try {
     const user = await login(req.body);
     const token = jwt.sign(
@@ -18,6 +18,26 @@ async function loginController(req, res) {
     res.redirect("/");
   } catch (error) {
     res.redirect("/login");
+  }
+}
+
+async function loginApiController(req, res) {
+  try {
+    const user = await login(req.body);
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.SECRET_KEY,
+      {
+        expiresIn: "1h",
+      }
+    );
+
+    // Simpan token di cookie:
+    // req.session.token = token;
+
+    res.status(200).json({ token });
+  } catch (error) {
+    res.status(400).json({ message: "invalid email or password" });
   }
 }
 
@@ -47,7 +67,8 @@ async function whoamiController(req, res) {
 }
 
 module.exports = {
-  loginController,
+  loginPageController,
+  loginApiController,
   registerController,
   logoutController,
   whoamiController,

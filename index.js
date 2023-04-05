@@ -4,13 +4,17 @@ const flash = require("express-flash");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const {
-  loginController,
+  loginPageController,
+  loginApiController,
   registerController,
   logoutController,
   whoamiController,
 } = require("./controller/authController");
 const morgan = require("morgan");
-const { restrictPageAccess } = require("./middleware/restrictPageAccess");
+const {
+  restrictPageAccess,
+  withAuthentication,
+} = require("./middleware/restrictPageAccess");
 const { restrictLoginPage } = require("./middleware/restrictLoginPage");
 const {
   createRoomController,
@@ -19,6 +23,9 @@ const {
   getRoomByIdController,
   playGameController,
 } = require("./controller/roomController");
+const swaggerUI = require("swagger-ui-express");
+const swaggerJson = require("./openapi.json");
+const cors = require("cors");
 
 require("dotenv").config();
 
@@ -29,6 +36,7 @@ const { PORT } = process.env;
 app.use(morgan("tiny"));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+app.use(cors());
 
 app.use(
   session({
@@ -37,6 +45,7 @@ app.use(
     saveUninitialized: false,
   })
 );
+app.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerJson));
 
 app.use(flash());
 app.set("view engine", "ejs");
@@ -48,15 +57,18 @@ app.get("/", restrictPageAccess, async (req, res) => {
 });
 app.get("/login", restrictLoginPage, (req, res) => res.render("login"));
 app.get("/register", (req, res) => res.render("register"));
-app.post("/api/login", loginController);
+app.post("/api/submit/login", loginPageController);
 app.post("/register", registerController);
 app.post("/logout", logoutController);
 app.get("/whoami", restrictPageAccess, whoamiController);
 
-app.get("/api/room", getAllRoomsController);
+// Fitur Room
+app.post("/api/login", loginApiController);
+app.get("/api/room", withAuthentication, getAllRoomsController);
 app.get("/api/room/:roomId", getRoomByIdController);
-app.post("/api/room/create", createRoomController);
+app.post("/api/room/create", withAuthentication, createRoomController);
 app.post("/api/room/:roomId/join", joinRoomController);
+// Fitur Play
 app.post("/api/room/:roomId/play", playGameController);
 
 app.listen(PORT, () => {
